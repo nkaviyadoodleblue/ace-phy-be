@@ -1,0 +1,939 @@
+openapi: 3.0.3
+info:
+  title: ACE Physician Backend API
+  description: Backend API for ACE Physician Service application - manages patients, cases, and medical records
+  version: 1.0.0
+  contact:
+    name: ACE Physician Support
+    email: support@acephysician.com
+  license:
+    name: ISC
+
+servers:
+  - url: http://localhost:2075
+    description: Development server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login endpoint
+
+  schemas:
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "64f1a2b3c4d5e6f7a8b9c0d1"
+        username:
+          type: string
+          example: "admin123"
+        role:
+          type: string
+          example: "admin"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - username
+        - role
+
+    Patient:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "64f1a2b3c4d5e6f7a8b9c0d1"
+        name:
+          type: string
+          example: "John Doe"
+        dob:
+          type: string
+          format: date
+          example: "1985-06-15"
+        gender:
+          type: string
+          example: "Male"
+        registrationDate:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        documents:
+          type: array
+          items:
+            type: string
+            format: uri
+            example: "https://storage.googleapis.com/ace-physician-bucket/patients/64f1a.../1703123456789-report.pdf"
+        cases:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              caseNumber:
+                type: string
+              status:
+                type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - name
+        - dob
+        - gender
+    
+    PaginatedPatients:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            list:
+              type: array
+              items:
+                $ref: '#/components/schemas/Patient'
+            currentPage:
+              type: integer
+              example: 1
+            totalPages:
+              type: integer
+              example: 10
+            totalPatients:
+              type: integer
+              example: 100
+
+    Document:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "64f1a2b3c4d5e6f7a8b9c0d1"
+        fileName:
+          type: string
+          example: "medical_report.pdf"
+        filePath:
+          type: string
+          format: uri
+          example: "https://storage.googleapis.com/ace-physician-bucket/cases/64f1a.../document-1703123456789.pdf"
+        uploadDate:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    CaseStep:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "64f1a2b3c4d5e6f7a8b9c0d1"
+        stepName:
+          type: string
+          enum:
+            - "Active Care / Records Sent"
+            - "Settled Pending Reductions"
+            - "Reductions Sent Pending Checks"
+            - "Closed Checks Received"
+          example: "Active Care / Records Sent"
+        status:
+          type: string
+          enum: [Pending, Completed]
+          example: "Pending"
+        completedDate:
+          type: string
+          format: date-time
+          nullable: true
+
+    Appointment:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "64f1a2b3c4d5e6f7a8b9c0d1"
+        providerName:
+          type: string
+          example: "Dr. Smith"
+        treatmentDetails:
+          type: string
+          example: "Physical therapy session"
+        procedureDate:
+          type: string
+          format: date
+          example: "2024-01-20"
+        currentBalance:
+          type: number
+          example: 1500.00
+        finalBalance:
+          type: number
+          nullable: true
+          example: 1200.00
+        reduction:
+          type: number
+          nullable: true
+          example: 300.00
+        status:
+          type: string
+          enum: ["Not Started", "Pending", "Completed"]
+          example: "Not Started"
+      required:
+        - providerName
+        - treatmentDetails
+        - procedureDate
+        - currentBalance
+
+    Case:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "64f1a2b3c4d5e6f7a8b9c0d1"
+        caseNumber:
+          type: string
+          example: "CASE-2024-001"
+        patient:
+          oneOf:
+            - type: string
+              example: "64f1a2b3c4d5e6f7a8b9c0d1"
+            - $ref: '#/components/schemas/Patient'
+        status:
+          type: string
+          enum: [Active, "Pending Reductions", Completed]
+          example: "Active"
+        appointments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Appointment'
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/Document'
+        caseSteps:
+          type: array
+          items:
+            $ref: '#/components/schemas/CaseStep'
+        totalAccountBalance:
+          type: number
+          example: 3000.00
+        finalAccountBalance:
+          type: number
+          example: 2400.00
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - caseNumber
+        - patient
+
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          example: "admin123"
+        password:
+          type: string
+          example: "password123"
+      required:
+        - username
+        - password
+
+    RegisterRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          example: "newuser123"
+        password:
+          type: string
+          example: "securepassword"
+      required:
+        - username
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    PatientRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Jane Smith"
+        dob:
+          type: string
+          format: date
+          example: "1990-03-22"
+        gender:
+          type: string
+          example: "Female"
+        registrationDate:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+      required:
+        - name
+        - dob
+        - gender
+    
+    FileUploadResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "File uploaded successfully"
+        file:
+          type: string
+          format: uri
+          example: "https://storage.googleapis.com/ace-physician-bucket/patients/64f1a.../1703123456789-report.pdf"
+        patientId:
+          type: string
+          example: "64f1a2b3c4d5e6f7a8b9c0d1"
+
+    DeleteFileResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "File deleted successfully"
+
+    CaseRequest:
+      type: object
+      properties:
+        caseNumber:
+          type: string
+          example: "CASE-2024-002"
+        patientId:
+          type: string
+          example: "64f1a2b3c4d5e6f7a8b9c0d1"
+        status:
+          type: string
+          enum: [Active, "Pending Reductions", Completed]
+          example: "Active"
+      required:
+        - caseNumber
+        - patientId
+
+    AppointmentRequest:
+      type: object
+      properties:
+        providerName:
+          type: string
+          example: "Dr. Johnson"
+        treatmentDetails:
+          type: string
+          example: "Consultation and examination"
+        procedureDate:
+          type: string
+          format: date
+          example: "2024-02-01"
+        currentBalance:
+          type: number
+          example: 800.00
+        finalBalance:
+          type: number
+          example: 650.00
+        reduction:
+          type: number
+          example: 150.00
+        status:
+          type: string
+          enum: ["Not Started", "Pending", "Completed"]
+          example: "Not Started"
+      required:
+        - providerName
+        - treatmentDetails
+        - procedureDate
+        - currentBalance
+
+    CaseStepUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [Pending, Completed]
+          example: "Completed"
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        msg:
+          type: string
+          example: "Error message"
+
+paths:
+  /api/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account with username and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Authenticate user and get token
+      description: Login with username and password to receive JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/patients:
+    post:
+      tags:
+        - Patients
+      summary: Create a new patient
+      description: Add a new patient to the system
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatientRequest'
+      responses:
+        '200':
+          description: Patient created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Patient'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Patients
+      summary: Get all patients
+      description: Retrieve a paginated list of patients, with optional search.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Number of patients per page
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search term for patient name or chart number
+      responses:
+        '200':
+          description: List of patients retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPatients'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/patients/{id}:
+    get:
+      tags:
+        - Patients
+      summary: Get patient by ID
+      description: Retrieve a specific patient by their ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Patient ID
+          example: "64f1a2b3c4d5e6f7a8b9c0d1"
+      responses:
+        '200':
+          description: Patient retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Patient'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Patient not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/patients/{id}/upload:
+    post:
+      tags:
+        - Patients
+      summary: Upload document to patient
+      description: Upload a document (PDF, JPEG, PNG) to a specific patient's record on GCS
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Patient ID
+          example: "64f1a2b3c4d5e6f7a8b9c0d1"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Document file (PDF, JPEG, PNG)
+              required:
+                - file
+      responses:
+        '200':
+          description: Document uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileUploadResponse'
+        '400':
+          description: No file uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Patient not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/patients/{id}/document:
+    delete:
+      tags:
+        - Patients
+      summary: Delete patient document
+      description: Delete a specific document from a patient's record on GCS
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Patient ID
+          example: "64f1a2b3c4d5e6f7a8b9c0d1"
+        - name: filePath
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uri
+          description: The full GCS URL of the file to delete
+          example: "https://storage.googleapis.com/ace-physician-bucket/patients/64f1a.../1703123456789-report.pdf"
+      responses:
+        '200':
+          description: File deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteFileResponse'
+        '400':
+          description: Missing filePath in query
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Patient not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error deleting file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/cases:
+    post:
+      tags:
+        - Cases
+      summary: Create a new case
+      description: Create a new case for a patient
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseRequest'
+      responses:
+        '200':
+          description: Case created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Patient not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/cases/{id}:
+    get:
+      tags:
+        - Cases
+      summary: Get case by ID
+      description: Retrieve a specific case with populated patient information
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Case ID
+          example: "64f1a2b3c4d5e6f7a8b9c0d1"
+      responses:
+        '200':
+          description: Case retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Case not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/cases/{id}/appointments:
+    post:
+      tags:
+        - Cases
+      summary: Add appointment to case
+      description: Add a new appointment to an existing case and recalculate balances
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Case ID
+          example: "64f1a2b3c4d5e6f7a8b9c0d1"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentRequest'
+      responses:
+        '200':
+          description: Appointment added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Case not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/cases/{id}/steps/{stepId}:
+    put:
+      tags:
+        - Cases
+      summary: Update case step status
+      description: Update the status of a specific case step (mark as completed/pending)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Case ID
+          example: "64f1a2b3c4d5e6f7a8b9c0d1"
+        - name: stepId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Case Step ID
+          example: "64f1a2b3c4d5e6f7a8b9c0d2"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseStepUpdate'
+      responses:
+        '200':
+          description: Case step updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Case or case step not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/cases/{id}/documents:
+    post:
+      tags:
+        - Cases
+      summary: Upload document to case
+      description: Upload a document file to a specific case on GCS
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Case ID
+          example: "64f1a2b3c4d5e6f7a8b9c0d1"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                document:
+                  type: string
+                  format: binary
+                  description: Document file (JPEG, JPG, PNG, GIF, PDF, DOC, DOCX - max 10MB)
+              required:
+                - document
+      responses:
+        '200':
+          description: Document uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+        '400':
+          description: Please upload a file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Case not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+tags:
+  - name: Authentication
+    description: User authentication endpoints
+  - name: Patients
+    description: Patient management endpoints
+  - name: Cases
+    description: Case management endpoints
+
+security:
+  - BearerAuth: []
