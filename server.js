@@ -6,7 +6,6 @@ const mongoose = require('mongoose');
 
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
-const cron = require('./crons');
 const swaggerDocument = YAML.load('./swagger.yaml');
 
 // Load environment variables
@@ -26,9 +25,6 @@ if (process.env.MONGO_URI) {
 } else {
   console.warn('⚠️ MONGO_URI not provided. Server running WITHOUT database.');
 }
-
-// Start cron jobs
-cron();
 
 const app = express();
 
