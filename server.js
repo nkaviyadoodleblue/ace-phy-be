@@ -38,11 +38,7 @@ app.use(express.json());
 // Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/patients', require('./routes/patients'));
-app.use('/api/cases', require('./routes/cases'));
-
+//Routes
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
