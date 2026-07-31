@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+
+metadata:
+  name: ace-pod
+  labels:
+    app: ace
+
+spec:
+  containers:
+    - name: ace
+      image: 629836545083.dkr.ecr.ap-south-1.amazonaws.com/kubernetes:latest
+      imagePullPolicy: Always
+
+      ports:
+        - containerPort: 3000
