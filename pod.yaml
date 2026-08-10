@@ -9,8 +9,8 @@ metadata:
 spec:
   containers:
     - name: ace
-      image: 629836545083.dkr.ecr.ap-south-1.amazonaws.com/kubernetes:latest
-      imagePullPolicy: Always
+      image: ace_image:IMAGE_TAG
+      imagePullPolicy: Never
 
       ports:
         - containerPort: 3000
