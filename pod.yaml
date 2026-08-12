@@ -9,8 +9,8 @@ metadata:
 spec:
   containers:
     - name: ace
-      image: ace_image:IMAGE_TAG
-      imagePullPolicy: Never
+      image: IMAGE_URI
+      imagePullPolicy: Always
 
       ports:
         - containerPort: 3000
